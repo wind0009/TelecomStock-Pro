@@ -209,7 +209,7 @@
         <div class="header">
             <h2 id="pageTitle">Tableau de bord</h2>
             <div class="user-info">
-                <span style="font-size:14px; color:#555;">👤 Propriétaire</span>
+                <span id="userNameDisplay" style="font-size:14px; color:#555;">👤 Propriétaire</span>
                 <div class="user-avatar">P</div>
             </div>
         </div>
@@ -410,8 +410,8 @@
                 </div>
                 <div class="stat-card">
                     <div class="icon-box blue">📈</div>
-                    <div class="label">Marge bénéficiaire</div>
-                    <div class="value" id="reportMargin">-</div>
+                    <div class="label">Coût total</div>
+                    <div class="value" id="reportCost">-</div>
                 </div>
                 <div class="stat-card">
                     <div class="icon-box orange">💰</div>
@@ -435,22 +435,18 @@
 
         <!-- SETTINGS -->
         <div id="settings" class="page">
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
-                <div class="card">
-                    <div class="card-header"><h3>🏢 Informations du magasin</h3></div>
-                    <div class="form-group"><label>Nom du magasin</label><input type="text" class="form-control" id="settingStoreName"></div>
-                    <div class="form-group"><label>Adresse</label><input type="text" class="form-control" id="settingStoreAddress"></div>
-                    <div class="form-group"><label>Téléphone</label><input type="text" class="form-control" id="settingStorePhone"></div>
-                    <div class="form-group"><label>IFU / NIF</label><input type="text" class="form-control" id="settingIFU"></div>
-                    <button class="btn btn-primary" onclick="saveSettings()">Enregistrer</button>
-                </div>
-                <div class="card">
-                    <div class="card-header"><h3>⚙️ Paramètres</h3></div>
-                    <div class="form-group"><label>Devise</label><select class="form-control" id="settingCurrency"><option>FCFA (XOF)</option><option>EUR (€)</option><option>USD ($)</option></select></div>
-                    <div class="form-group"><label>TVA (%)</label><input type="number" class="form-control" id="settingVAT"></div>
-                    <div class="form-group"><label>Seuil alerte stock bas</label><input type="number" class="form-control" id="settingMinStock"></div>
-                    <button class="btn btn-primary" onclick="saveSettings()">Sauvegarder</button>
-                </div>
+            <div class="card">
+                <div class="card-header"><h3>🏢 Informations du magasin</h3></div>
+                <div class="form-group"><label>Nom du magasin</label><input type="text" class="form-control" id="settingStoreName"></div>
+                <div class="form-group"><label>Adresse</label><input type="text" class="form-control" id="settingStoreAddress"></div>
+                <div class="form-group"><label>Téléphone</label><input type="text" class="form-control" id="settingStorePhone"></div>
+                <div class="form-group"><label>IFU / NIF</label><input type="text" class="form-control" id="settingIFU"></div>
+                <button class="btn btn-primary" onclick="saveSettings()">Enregistrer</button>
+            </div>
+            <div class="card" style="margin-top:20px; border:2px solid #ff6b6b;">
+                <div class="card-header"><h3 style="color:#ff6b6b;">⚠️ Zone dangereuse</h3></div>
+                <p style="color:#666; margin-bottom:15px; font-size:13px;">Cette action est irréversible. Toutes les données (produits, ventes, clients, fournisseurs, crédits, mouvements de stock) seront supprimées. Le logiciel sera comme neuf.</p>
+                <button class="btn btn-danger" onclick="resetAllData()">🗑️ Réinitialiser toutes les données</button>
             </div>
         </div>
     </div>
@@ -610,7 +606,8 @@
             document.getElementById('loginPage').style.display = 'none';
             document.getElementById('app').style.display = 'block';
             loadDashboard();
-            showToast('Bienvenue, Propriétaire ! 👋');
+            loadSettings();
+            showToast('Bienvenue ! 👋');
         } catch (e) { showToast(e.message, 'error'); }
     }
 
@@ -994,7 +991,6 @@
             document.getElementById('reportRevenue').textContent = formatMoney(d.totalRevenue);
             document.getElementById('reportCost').textContent = formatMoney(d.totalCost);
             document.getElementById('reportProfit').textContent = formatMoney(d.totalProfit);
-            document.getElementById('reportMargin').textContent = (d.totalRevenue > 0 ? ((d.totalProfit / d.totalRevenue) * 100).toFixed(1) : 0) + '%';
             document.getElementById('reportProducts').textContent = d.items.reduce((sum, i) => sum + i.qty_sold, 0);
 
             document.getElementById('profitTable').innerHTML = d.items.map(i => 
@@ -1011,9 +1007,15 @@
             document.getElementById('settingStoreAddress').value = s.store_address || '';
             document.getElementById('settingStorePhone').value = s.store_phone || '';
             document.getElementById('settingIFU').value = s.ifu || '';
-            document.getElementById('settingCurrency').value = s.currency || 'FCFA';
-            document.getElementById('settingVAT').value = s.vat_rate || '18';
-            document.getElementById('settingMinStock').value = s.min_stock_alert || '5';
+            
+            // Mettre à jour le nom affiché dans le header
+            const userDisplay = document.getElementById('userNameDisplay');
+            const storeName = s.store_name || '';
+            if (storeName) {
+                userDisplay.textContent = '👤 ' + storeName;
+            } else {
+                userDisplay.textContent = '👤 Propriétaire';
+            }
         } catch (e) { showToast(e.message, 'error'); }
     }
 
@@ -1023,12 +1025,26 @@
             store_address: document.getElementById('settingStoreAddress').value,
             store_phone: document.getElementById('settingStorePhone').value,
             ifu: document.getElementById('settingIFU').value,
-            currency: document.getElementById('settingCurrency').value,
-            vat_rate: document.getElementById('settingVAT').value,
-            min_stock_alert: document.getElementById('settingMinStock').value
+            currency: 'FCFA',
+            vat_rate: '18',
+            min_stock_alert: '5'
         };
-        try { await api('/settings', { method: 'PUT', body: JSON.stringify(data) }); showToast('Paramètres sauvegardés !'); }
+        try { 
+            await api('/settings', { method: 'PUT', body: JSON.stringify(data) }); 
+            showToast('Paramètres sauvegardés !');
+            loadSettings(); // Rafraîchir l'affichage
+        }
         catch (e) { showToast(e.message, 'error'); }
+    }
+
+    async function resetAllData() {
+        if (!confirm('⚠️ ATTENTION !\n\nCette action est IRRÉVERSIBLE.\n\nToutes les données seront supprimées :\n- Produits\n- Ventes\n- Clients\n- Fournisseurs\n- Crédits\n- Mouvements de stock\n- Paramètres\n\nLe logiciel sera comme neuf.\n\nContinuer ?')) return;
+        if (!confirm('DERNIÈRE CONFIRMATION :\n\nÊtes-vous VRAIMENT sûr de vouloir tout supprimer ?\n\nTapez "OK" pour confirmer.')) return;
+        try {
+            await api('/reset', { method: 'POST' });
+            showToast('✅ Toutes les données ont été supprimées !');
+            setTimeout(() => location.reload(), 1500);
+        } catch (e) { showToast(e.message, 'error'); }
     }
 </script>
 </body>
