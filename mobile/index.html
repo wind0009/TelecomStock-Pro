@@ -440,7 +440,6 @@
                 <div class="form-group"><label>Nom du Telecom</label><input type="text" class="form-control" id="settingStoreName"></div>
                 <div class="form-group"><label>Adresse</label><input type="text" class="form-control" id="settingStoreAddress"></div>
                 <div class="form-group"><label>Téléphone</label><input type="text" class="form-control" id="settingStorePhone"></div>
-                <div class="form-group"><label>IFU / NIF</label><input type="text" class="form-control" id="settingIFU"></div>
                 <button class="btn btn-primary" onclick="saveSettings()">Enregistrer</button>
             </div>
             <div class="card" style="margin-top:20px; border:2px solid #ff6b6b;">
@@ -1006,7 +1005,6 @@
             document.getElementById('settingStoreName').value = s.store_name || '';
             document.getElementById('settingStoreAddress').value = s.store_address || '';
             document.getElementById('settingStorePhone').value = s.store_phone || '';
-            document.getElementById('settingIFU').value = s.ifu || '';
             
             // Mettre à jour le nom affiché dans le header
             const userDisplay = document.getElementById('userNameDisplay');
@@ -1024,7 +1022,7 @@
             store_name: document.getElementById('settingStoreName').value,
             store_address: document.getElementById('settingStoreAddress').value,
             store_phone: document.getElementById('settingStorePhone').value,
-            ifu: document.getElementById('settingIFU').value,
+            ifu: '',
             currency: 'FCFA',
             vat_rate: '18',
             min_stock_alert: '5'
